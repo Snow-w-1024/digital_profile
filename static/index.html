@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Profile</title>
+    <style>
+        body { font-family: sans-serif; max-width: 600px; margin: 40px auto; padding: 20px; line-height: 1.6; }
+        h1 { color: #333; }
+        .card { border: 1px solid #ddd; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .field-title { font-weight: bold; margin-top: 15px; color: #555; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1 id="name">Loading...</h1>
+        <p id="message"></p>
+        <div class="field-title">About Me:</div>
+        <p id="bio"></p>
+        <div class="field-title">Skills:</div>
+        <p id="skills"></p>
+    </div>
+    <script>
+        async function loadProfile() {
+            try {
+                const response = await fetch('/api/profile');
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('name').textContent = data.name;
+                    document.getElementById('message').textContent = data.message;
+                    document.getElementById('bio').textContent = data.bio;
+                    document.getElementById('skills').textContent = data.skills;
+                } else {
+                    document.getElementById('name').textContent = 'Failed to load data';
+                }
+            } catch (error) {
+                document.getElementById('name').textContent = 'An error occurred';
+            }
+        }
+        loadProfile();
+    </script>
+</body>
+</html>

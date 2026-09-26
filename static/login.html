@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Management Login and Edit</title>
+    <style>
+        body { font-family: sans-serif; max-width: 600px; margin: 40px auto; padding: 20px; line-height: 1.6; }
+        .container { border: 1px solid #ddd; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        input, textarea, button { display: block; width: 100%; margin: 10px 0; padding: 8px; box-sizing: border-box; }
+        button { background-color: #007BFF; color: white; border: none; cursor: pointer; padding: 10px; border-radius: 4px; font-size: 16px; }
+        button:hover { background-color: #0056b3; }
+        #edit-section { display: none; }
+        .status { color: red; font-size: 0.9em; margin-top: 10px; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <div id="login-section" class="container">
+        <h2>Management Login</h2>
+        <input type="password" id="password" placeholder="Please enter your password">
+        <button onclick="login()">Login</button>
+        <p id="login-status" class="status"></p>
+    </div>
+
+    <div id="edit-section" class="container">
+        <h2>Edit Profile</h2>
+        <label>Name:</label>
+        <input type="text" id="edit-name">
+        <label>Message:</label>
+        <input type="text" id="edit-message">
+        <label>About Me:</label>
+        <textarea id="edit-bio" rows="4"></textarea>
+        <label>Skills:</label>
+        <input type="text" id="edit-skills">
+        <button onclick="updateProfile()">Save Changes</button>
+        <button onclick="logout()" style="background-color: #dc3545; margin-top: 15px;">Logout</button>
+        <p id="edit-status" class="status"></p>
+    </div>
+
+    <script>
+        function checkAuth() {
+            const token = localStorage.getItem('token');
+            if (token) {
+                document.getElementById('login-section').style.display = 'none';
+                document.getElementById('edit-section').style.display = 'block';
+                loadCurrentProfile();
+            } else {
+                document.getElementById('login-section').style.display = 'block';
+                document.getElementById('edit-section').style.display = 'none';
+            }
+        }
+
+        async function login() {
+            const password = document.getElementById('password').value;
+            const statusEl = document.getElementById('login-status');
+            statusEl.textContent = '';
+            
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password: password })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    localStorage.setItem('token', data.token);
+                    document.getElementById('password').value = '';
+                    checkAuth();
+                } else {
+                    statusEl.textContent = 'Password is incorrect';
+                }
+            } catch (error) {
+                statusEl.textContent = 'Network error';
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            checkAuth();
+        }
+
+        async function loadCurrentProfile() {
+            try {
+                const response = await fetch('/api/profile');
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('edit-name').value = data.name;
+                    document.getElementById('edit-message').value = data.message;
+                    document.getElementById('edit-bio').value = data.bio;
+                    document.getElementById('edit-skills').value = data.skills;
+                }
+            } catch (error) {
+                document.getElementById('edit-status').textContent = 'Failed to load existing data';
+            }
+        }
+
+        async function updateProfile() {
+            const token = localStorage.getItem('token');
+            const statusEl = document.getElementById('edit-status');
+            statusEl.className = 'status';
+            statusEl.textContent = 'saving...';
+
+            const payload = {
+                name: document.getElementById('edit-name').value,
+                message: document.getElementById('edit-message').value,
+                bio: document.getElementById('edit-bio').value,
+                skills: document.getElementById('edit-skills').value
+            };
+
+            try {
+                const response = await fetch('/api/profile', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    statusEl.className = 'status success';
+                    statusEl.textContent = 'saving successful!';
+                    setTimeout(() => statusEl.textContent = '', 3000);
+                } else if (response.status === 401) {
+                    statusEl.textContent = 'Authorization failed or Token expired, please log in again';
+                    logout();
+                } else {
+                    statusEl.textContent = 'saving failed';
+                }
+            } catch (error) {
+                statusEl.textContent = 'network error';
+            }
+        }
+
+        checkAuth();
+    </script>
+</body>
+</html>
